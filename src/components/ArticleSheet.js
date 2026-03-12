@@ -10,6 +10,7 @@ import {
   Modal,
   Linking,
   Share,
+  Platform,
 } from 'react-native';
 import COLORS from '../theme/colors';
 import SparkleSpinner from './SparkleSpinner';
@@ -31,7 +32,7 @@ export default function ArticleSheet({ visible, article, category, onClose }) {
       setIsAI(true);
       Animated.spring(slideAnim, {
         toValue: 0,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
         tension: 65,
         friction: 11,
       }).start();
@@ -40,7 +41,7 @@ export default function ArticleSheet({ visible, article, category, onClose }) {
       Animated.timing(slideAnim, {
         toValue: SCREEN_HEIGHT,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start();
     }
   }, [visible, article]);

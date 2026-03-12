@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Text } from 'react-native';
+import { View, Animated, StyleSheet, Text, Platform } from 'react-native';
 import COLORS from '../theme/colors';
 
 export default function SparkleSpinner({ message = 'Getting the tea...' }) {
@@ -17,12 +17,12 @@ export default function SparkleSpinner({ message = 'Getting the tea...' }) {
           Animated.timing(anim, {
             toValue: 1,
             duration: 600,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(anim, {
             toValue: 0,
             duration: 600,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ])
       ).start();

@@ -8,6 +8,7 @@ import {
   Animated,
   RefreshControl,
   Dimensions,
+  Platform,
 } from 'react-native';
 import COLORS from '../theme/colors';
 import FEEDS from '../config/feeds';
@@ -222,14 +223,14 @@ function CategoryBook({ categoryKey, meta, feed, onPress }) {
   function onPressIn() {
     Animated.spring(scaleAnim, {
       toValue: 0.92,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }
   function onPressOut() {
     Animated.spring(scaleAnim, {
       toValue: 1,
       friction: 3,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }
 

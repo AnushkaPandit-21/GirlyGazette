@@ -1,8 +1,8 @@
-import React, { useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { useFonts, Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 import {
   Nunito_400Regular,
@@ -10,7 +10,6 @@ import {
   Nunito_700Bold,
   Nunito_800ExtraBold,
 } from '@expo-google-fonts/nunito';
-import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -19,28 +18,20 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import { SettingsProvider } from './src/context/SettingsContext';
 import COLORS from './src/theme/colors';
 
-SplashScreen.preventAutoHideAsync();
-
 const Tab = createBottomTabNavigator();
-const HomeStack = createNativeStackNavigator();
+const HomeStack = createStackNavigator();
 
 function HomeStackScreen() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen
-        name="Category"
-        component={CategoryScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
+      <HomeStack.Screen name="Category" component={CategoryScreen} />
     </HomeStack.Navigator>
   );
 }
 
 function CustomTabButton({ children, onPress, accessibilityState }) {
-  const focused = accessibilityState.selected;
+  const focused = accessibilityState?.selected;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePress = useCallback(() => {
@@ -48,16 +39,16 @@ function CustomTabButton({ children, onPress, accessibilityState }) {
       Animated.timing(scaleAnim, {
         toValue: 0.85,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 3,
         tension: 150,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
-    onPress();
+    if (onPress) onPress();
   }, [onPress]);
 
   return (
@@ -124,17 +115,32 @@ export default function App() {
     Nunito_800ExtraBold,
   });
 
-  const onLayoutRootView = useCallback(async () => {
+  useEffect(() => {
     if (fontsLoaded) {
-      await SplashScreen.hideAsync();
+      // Hide splash screen on native platforms
+      async function hideSplash() {
+        try {
+          const SplashScreen = require('expo-splash-screen');
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          // Splash screen not available on web, that's fine
+        }
+      }
+      hideSplash();
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 24 }}>✨</Text>
+      </View>
+    );
+  }
 
   return (
     <SettingsProvider>
-      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <View style={{ flex: 1 }}>
         <StatusBar style="dark" />
         <NavigationContainer>
           <Tab.Navigator

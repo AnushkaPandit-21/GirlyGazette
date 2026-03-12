@@ -1,5 +1,9 @@
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FEEDS from '../config/feeds';
+
+// CORS proxy only used for web testing — native apps don't need it
+const CORS_PROXY = Platform.OS === 'web' ? 'https://api.allorigins.win/raw?url=' : '';
 
 function stripHtml(html) {
   if (!html) return '';
@@ -16,7 +20,8 @@ function stripHtml(html) {
 
 async function parseFeed(url) {
   try {
-    const response = await fetch(url, {
+    const fetchUrl = CORS_PROXY ? `${CORS_PROXY}${encodeURIComponent(url)}` : url;
+    const response = await fetch(fetchUrl, {
       headers: {
         Accept: 'application/rss+xml, application/xml, text/xml, */*',
       },
