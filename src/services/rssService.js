@@ -1,17 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FEEDS from '../config/feeds';
-
-const CORS_PROXY = '';
-
-function extractImageUrl(item) {
-  if (item['media:content']?.$.url) return item['media:content'].$.url;
-  if (item.enclosure?.url) return item.enclosure.url;
-
-  const desc = item.description || item['content:encoded'] || '';
-  const imgMatch = desc.match(/<img[^>]+src=["']([^"']+)["']/);
-  if (imgMatch) return imgMatch[1];
-
-  return null;
-}
 
 function stripHtml(html) {
   if (!html) return '';
@@ -28,9 +16,9 @@ function stripHtml(html) {
 
 async function parseFeed(url) {
   try {
-    const response = await fetch(`${CORS_PROXY}${url}`, {
+    const response = await fetch(url, {
       headers: {
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        Accept: 'application/rss+xml, application/xml, text/xml, */*',
       },
     });
 
@@ -65,9 +53,9 @@ function parseXml(xml) {
 
     if (!imageUrl) {
       const contentEncoded = getTagContent(itemXml, 'content:encoded') || '';
-      const imgMatch = (contentEncoded + (getTagContent(itemXml, 'description') || '')).match(
-        /<img[^>]+src=["']([^"']+)["']/
-      );
+      const imgMatch = (
+        contentEncoded + (getTagContent(itemXml, 'description') || '')
+      ).match(/<img[^>]+src=["']([^"']+)["']/);
       if (imgMatch) imageUrl = imgMatch[1];
     }
 
@@ -86,7 +74,10 @@ function parseXml(xml) {
 }
 
 function getTagContent(xml, tag) {
-  const cdataRegex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`, 'i');
+  const cdataRegex = new RegExp(
+    `<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`,
+    'i'
+  );
   const cdataMatch = xml.match(cdataRegex);
   if (cdataMatch) return cdataMatch[1];
 
@@ -99,6 +90,30 @@ function getAttr(xml, tag, attr) {
   const regex = new RegExp(`<${tag}[^>]+${attr}=["']([^"']+)["']`, 'i');
   const match = xml.match(regex);
   return match ? match[1] : null;
+}
+
+function getRssCacheKey(categoryKey) {
+  return `rss_cache_${categoryKey}`;
+}
+
+async function cacheArticles(categoryKey, articles) {
+  try {
+    await AsyncStorage.setItem(
+      getRssCacheKey(categoryKey),
+      JSON.stringify({ articles, timestamp: Date.now() })
+    );
+  } catch (e) {}
+}
+
+async function getCachedArticles(categoryKey) {
+  try {
+    const raw = await AsyncStorage.getItem(getRssCacheKey(categoryKey));
+    if (raw) {
+      const { articles } = JSON.parse(raw);
+      return articles || [];
+    }
+  } catch (e) {}
+  return [];
 }
 
 export async function fetchFeedsByCategory(categoryKey) {
@@ -123,17 +138,26 @@ export async function fetchFeedsByCategory(categoryKey) {
     return dateB - dateA;
   });
 
-  return allItems.slice(0, 8);
+  const top = allItems.slice(0, 8);
+
+  if (top.length > 0) {
+    await cacheArticles(categoryKey, top);
+    return top;
+  }
+
+  const cached = await getCachedArticles(categoryKey);
+  return cached;
 }
 
 export async function fetchAllFeeds() {
   const categories = Object.keys(FEEDS);
   const result = {};
 
-  const promises = categories.map(async (key) => {
-    result[key] = await fetchFeedsByCategory(key);
-  });
+  await Promise.allSettled(
+    categories.map(async (key) => {
+      result[key] = await fetchFeedsByCategory(key);
+    })
+  );
 
-  await Promise.allSettled(promises);
   return result;
 }

@@ -20,15 +20,15 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ArticleSheet({ visible, article, category, onClose }) {
   const [summary, setSummary] = useState(null);
+  const [isAI, setIsAI] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const { settings } = useSettings();
 
   useEffect(() => {
     if (visible) {
       setSummary(null);
-      setError(null);
+      setIsAI(true);
       Animated.spring(slideAnim, {
         toValue: 0,
         useNativeDriver: true,
@@ -48,22 +48,14 @@ export default function ArticleSheet({ visible, article, category, onClose }) {
   async function fetchSummary() {
     if (!article) return;
     setLoading(true);
-    setError(null);
     try {
-      const lang = settings.language || 'English';
-      const langNote =
-        lang === 'Hindi'
-          ? ' Respond in Hindi.'
-          : lang === 'Hinglish'
-          ? ' Respond in Hinglish (mix of Hindi and English).'
-          : '';
-      const result = await getAISummary(
-        { ...article, langNote },
-        category
-      );
-      setSummary(result);
+      const language = settings.language || 'English';
+      const result = await getAISummary(article, category, language);
+      setSummary(result.summary);
+      setIsAI(result.isAI);
     } catch (e) {
-      setError(e.message);
+      setSummary(article.description || 'No description available.');
+      setIsAI(false);
     } finally {
       setLoading(false);
     }
@@ -79,7 +71,7 @@ export default function ArticleSheet({ visible, article, category, onClose }) {
   }
 
   function renderWhySection() {
-    if (!summary) return null;
+    if (!summary || !isAI) return null;
     const whyMatch = summary.match(
       /Why this matters to YOU 💅([\s\S]*?)$/i
     );
@@ -94,10 +86,9 @@ export default function ArticleSheet({ visible, article, category, onClose }) {
 
   function renderMainSummary() {
     if (!summary) return null;
-    const mainText = summary.replace(
-      /Why this matters to YOU 💅[\s\S]*$/i,
-      ''
-    );
+    const mainText = isAI
+      ? summary.replace(/Why this matters to YOU 💅[\s\S]*$/i, '')
+      : summary;
     return <Text style={styles.summaryText}>{mainText.trim()}</Text>;
   }
 
@@ -129,18 +120,19 @@ export default function ArticleSheet({ visible, article, category, onClose }) {
           >
             <Text style={styles.articleTitle}>{article.title}</Text>
 
-            {loading && <SparkleSpinner message="Getting the tea from AI bestie... ✨" />}
+            {loading && (
+              <SparkleSpinner message="Getting the tea from AI bestie... ✨" />
+            )}
 
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>😢 {error}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={fetchSummary}>
-                  <Text style={styles.retryText}>Try again 💪</Text>
-                </TouchableOpacity>
+            {!loading && !isAI && summary && (
+              <View style={styles.fallbackBanner}>
+                <Text style={styles.fallbackText}>
+                  ✨ AI bestie is on a break, here's the original tea
+                </Text>
               </View>
             )}
 
-            {summary && (
+            {!loading && summary && (
               <>
                 {renderMainSummary()}
                 {renderWhySection()}
@@ -204,6 +196,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 28,
   },
+  fallbackBanner: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent,
+  },
+  fallbackText: {
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 13,
+    color: '#8B6914',
+  },
   summaryText: {
     fontFamily: 'Nunito_400Regular',
     fontSize: 16,
@@ -230,31 +235,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text,
     lineHeight: 23,
-  },
-  errorBox: {
-    backgroundColor: '#FFF0F0',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginVertical: 12,
-  },
-  errorText: {
-    fontFamily: 'Nunito_600SemiBold',
-    fontSize: 15,
-    color: COLORS.danger,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  retryButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  retryText: {
-    fontFamily: 'Nunito_700Bold',
-    color: COLORS.white,
-    fontSize: 14,
   },
   actionRow: {
     flexDirection: 'row',

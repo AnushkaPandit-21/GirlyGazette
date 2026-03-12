@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "The Girly Gazette",
-    "slug": "GirlyGazette",
+    "slug": "girly-gazette",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,19 +9,19 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFF0F5"
+      "backgroundColor": "#FF4D8D"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.personal.girlygazette"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FFF0F5",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FF4D8D",
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "package": "com.girlygazette.app"
+      "package": "com.personal.girlygazette",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
